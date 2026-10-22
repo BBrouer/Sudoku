@@ -48,7 +48,7 @@ public enum Generator {
     /// Generates a puzzle for `level`. Retries with fresh grids until the
     /// given count lands in the level's range *and* `LogicSolver` says the
     /// puzzle's hardest required technique matches that level's tier.
-    public static func makePuzzle(level: Level, seed: UInt64, maxAttempts: Int = 2000) -> Puzzle? {
+    public static func makePuzzle(level: Level, seed: UInt64, maxAttempts: Int = 10_000) -> Puzzle? {
         var rng = SeededRNG(seed: seed)
         for _ in 0..<maxAttempts {
             let solution = completeGrid(using: &rng)
