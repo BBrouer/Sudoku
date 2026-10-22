@@ -8,6 +8,7 @@ import SudokuCore
 /// Usage:
 ///   swift run sudoku-gen check
 ///   swift run sudoku-gen calibrate [count-per-level]
+///   swift run sudoku-gen profile <level> [attempts]
 ///   swift run sudoku-gen pool <count-per-level> <output-dir>
 
 func parse(_ s: String) -> [UInt8] { s.map { UInt8(String($0))! } }
@@ -74,6 +75,37 @@ func calibrate(perLevel: Int) {
     }
 }
 
+/// Where generation time goes for one level: cell removal vs. logic grading,
+/// and why attempts get rejected.
+func profile(level: Level, attempts: Int) {
+    var rng = SeededRNG(seed: 1)
+    var removeTime: TimeInterval = 0, gradeTime: TimeInterval = 0
+    var outOfRange = 0, unsolved = 0, wrongTier = 0, accepted = 0
+    var hardestCounts: [Technique: Int] = [:]
+    var givenCounts: [Int: Int] = [:]
+    for _ in 0..<attempts {
+        let solution = Generator.completeGrid(using: &rng)
+        let target = Int.random(in: level.givenRange, using: &rng)
+        var t = Date()
+        let givens = Generator.removeCells(from: solution, targetGivens: target, using: &rng)
+        removeTime += Date().timeIntervalSince(t)
+        let count = givens.lazy.filter { $0 != 0 }.count
+        givenCounts[count, default: 0] += 1
+        guard level.givenRange.contains(count) else { outOfRange += 1; continue }
+        t = Date()
+        let grade = LogicSolver.grade(givens)
+        gradeTime += Date().timeIntervalSince(t)
+        guard grade.solved, let hardest = grade.hardestTechnique else { unsolved += 1; continue }
+        hardestCounts[hardest, default: 0] += 1
+        if hardest.tier == level { accepted += 1 } else { wrongTier += 1 }
+    }
+    print("\(level.rawValue), \(attempts) attempts: accepted \(accepted), out-of-range \(outOfRange), "
+        + "unsolved-by-logic \(unsolved), wrong tier \(wrongTier)")
+    print(String(format: "  removeCells total %.2fs, grade total %.2fs", removeTime, gradeTime))
+    print("  hardest technique among solved: \(hardestCounts.sorted { $0.key < $1.key }.map { "\($0.key)=\($0.value)" })")
+    print("  givens reached: \(givenCounts.sorted { $0.key < $1.key }.map { "\($0.key):\($0.value)" })")
+}
+
 func pool(perLevel: Int, outDir: String) throws {
     let fm = FileManager.default
     try fm.createDirectory(atPath: outDir, withIntermediateDirectories: true)
@@ -101,6 +133,11 @@ case "check":
 case "calibrate":
     let n = args.count > 2 ? Int(args[2]) ?? 20 : 20
     calibrate(perLevel: n)
+case "profile":
+    guard args.count > 2, let level = Level(rawValue: args[2]) else {
+        print("usage: sudoku-gen profile <level> [attempts]"); exit(1)
+    }
+    profile(level: level, attempts: args.count > 3 ? Int(args[3]) ?? 30 : 30)
 case "pool":
     guard args.count > 3, let n = Int(args[2]) else {
         print("usage: sudoku-gen pool <count-per-level> <output-dir>"); exit(1)
