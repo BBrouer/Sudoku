@@ -10,6 +10,7 @@ let package = Package(
     targets: [
         .target(name: "SudokuCore"),
         .executableTarget(name: "sudoku-gen", dependencies: ["SudokuCore"]),
+        .executableTarget(name: "sudoku-play", dependencies: ["SudokuCore"]),
         .testTarget(name: "SudokuCoreTests", dependencies: ["SudokuCore"]),
     ]
 )
