@@ -9,6 +9,7 @@ let package = Package(
     ],
     targets: [
         .target(name: "SudokuCore"),
+        .executableTarget(name: "sudoku-gen", dependencies: ["SudokuCore"]),
         .testTarget(name: "SudokuCoreTests", dependencies: ["SudokuCore"]),
     ]
 )

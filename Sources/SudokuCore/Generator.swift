@@ -1,8 +1,6 @@
-/// Generates uniquely-solvable puzzles.
-///
-/// NOTE: difficulty is currently enforced by given count only. Technique-based
-/// grading (SPEC.md §3) comes with the logic solver and will reject puzzles
-/// whose hardest required technique doesn't match the level.
+/// Generates uniquely-solvable puzzles, graded by `LogicSolver` so a puzzle
+/// is only accepted for a level if its hardest required technique matches
+/// that level's tier (SPEC.md §3) — and it is solvable without guessing.
 public enum Generator {
     /// A random valid complete grid: a base pattern shuffled by
     /// validity-preserving permutations.
@@ -48,18 +46,20 @@ public enum Generator {
     }
 
     /// Generates a puzzle for `level`. Retries with fresh grids until the
-    /// given count lands in the level's range.
-    public static func makePuzzle(level: Level, seed: UInt64, maxAttempts: Int = 200) -> Puzzle? {
+    /// given count lands in the level's range *and* `LogicSolver` says the
+    /// puzzle's hardest required technique matches that level's tier.
+    public static func makePuzzle(level: Level, seed: UInt64, maxAttempts: Int = 2000) -> Puzzle? {
         var rng = SeededRNG(seed: seed)
         for _ in 0..<maxAttempts {
             let solution = completeGrid(using: &rng)
             let target = Int.random(in: level.givenRange, using: &rng)
             let givens = removeCells(from: solution, targetGivens: target, using: &rng)
             let count = givens.lazy.filter { $0 != 0 }.count
-            if level.givenRange.contains(count) {
-                return Puzzle(id: String(seed, radix: 16), level: level,
-                              givens: givens, solution: solution)
-            }
+            guard level.givenRange.contains(count) else { continue }
+            let grade = LogicSolver.grade(givens)
+            guard grade.solved, let hardest = grade.hardestTechnique, hardest.tier == level else { continue }
+            return Puzzle(id: String(seed, radix: 16), level: level,
+                          givens: givens, solution: solution)
         }
         return nil
     }
