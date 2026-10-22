@@ -45,6 +45,15 @@ public struct LogicSolver {
         findStep(values, computeCandidates(values))
     }
 
+    /// Like `nextStep`, but treats the digit bits set in `eliminated[cell]`
+    /// as already ruled out, so a hint that removes candidates isn't repeated
+    /// once the player has applied it.
+    public static func nextStep(_ values: [UInt8], eliminated: [UInt16]) -> Step? {
+        var cands = computeCandidates(values)
+        for i in 0..<81 { cands[i] &= ~eliminated[i] }
+        return findStep(values, cands)
+    }
+
     // MARK: - Driving the techniques
 
     private static func findStep(_ values: [UInt8], _ cands: [UInt16]) -> Step? {

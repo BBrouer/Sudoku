@@ -1,8 +1,8 @@
 /// Precomputed board geometry. Cells are indexed 0..<81, row-major.
-enum Geometry {
-    static let row: [Int] = (0..<81).map { $0 / 9 }
-    static let col: [Int] = (0..<81).map { $0 % 9 }
-    static let box: [Int] = (0..<81).map { ($0 / 27) * 3 + ($0 % 9) / 3 }
+public enum Geometry {
+    public static let row: [Int] = (0..<81).map { $0 / 9 }
+    public static let col: [Int] = (0..<81).map { $0 % 9 }
+    public static let box: [Int] = (0..<81).map { ($0 / 27) * 3 + ($0 % 9) / 3 }
 
     /// Bitmask with bits 1...9 set (bit 0 unused so digit d is `1 << d`).
     static let allDigits: UInt16 = 0b11_1111_1110
@@ -18,7 +18,7 @@ enum Geometry {
     static let units: [[Int]] = rowCells + colCells + boxCells
 
     /// Cells sharing a row, column, or box with `i`, excluding `i` itself.
-    static let peers: [[Int]] = (0..<81).map { i in
+    public static let peers: [[Int]] = (0..<81).map { i in
         var s = Set<Int>()
         s.formUnion(rowCells[row[i]])
         s.formUnion(colCells[col[i]])
